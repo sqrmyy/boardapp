@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { API, graphqlOperation } from "aws-amplify";
 import { listPosts } from './graphql/queries';
 import { createPost } from './graphql/mutations';
+import { onCreatePost } from './graphql/subscriptions';
 
 class App extends Component {
 
@@ -15,9 +16,21 @@ class App extends Component {
     try {
       const posts = await API.graphql(graphqlOperation(listPosts))
       console.log('posts: ', posts)
+      this.setState({ posts: posts.data.listPosts.items })
     } catch (e) {
       console.log(e)
     }
+
+    API.graphql(graphqlOperation(onCreatePost)).subscribe({
+      next: (eventData) => {
+        console.log('eventData: ', eventData)
+        const post = eventData.value.data.onCreatePost
+        const posts = [...this.state.posts.filter(content => {
+          return (content.title !== post.title)
+        }), post]
+        this.setState({ posts })
+      }
+    })
   }
 
   createPost = async () => {
